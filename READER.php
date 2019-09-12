@@ -17,13 +17,28 @@ $data=(json_decode($data,true));
 
 $timeData=array();
 
+/*for ($i=0;$i<count($data);$i++){ //ohne das hier kommt ne notiz: PHP Notice:  Undefined index: 2019.08.05 in /Users/ll/Desktop/jsonInExcel/reader.php on line 30
+//PHP Notice:  Undefined index: StartTime in /Users/ll/Desktop/jsonInExcel/reader.php on line 33
+//PHP Notice:  Undefined index: StartTime in /Users/ll/Desktop/jsonInExcel/reader.php on line 33
+//PHP Notice:  Undefined index: 2019.08.06 in /Users/ll/Desktop/jsonInExcel/reader.php on line 30
+//PHP Notice:  Undefined index: StartTime in /Users/ll/Desktop/jsonInExcel/reader.php on line 33
+
+$day= date_format(new DateTime($data[$i]["Started"]),'Y.m.d');
+    $timeData[$day]["workTime"] = 0;
+    $timeData[$day]["StartTime"] = 0;
+    $timeData[$day]["EndTime"] = 0;
+    $timeData[$day]["Pause"]= 0;
+}*/
+
 for ($i=0;$i<count($data);$i++){
     $day= date_format(new DateTime($data[$i]["Started"]),'Y.m.d');
     $timeData[$day]["workTime"] = $timeData[$day]["workTime"] + $data[$i]["TimeSpentSeconds"];
+
     //starttime
     if (($timeData[$day]["StartTime"] < date_format(new DateTime($data[$i]["Started"]),'H:i:s')) && (($timeData[$day]["StartTime"] != null))){
         $timeData[$day]["StartTime"];
     } else {$timeData[$day]["StartTime"]= date_format(new DateTime($data[$i]["Started"]),'H:i:s');}
+
     //endtime
     $date = (new DateTime($timeData[$day]["StartTime"]));
     $endTime= date_add($date,date_interval_create_from_date_string((string)($timeData[$day]["workTime"])." seconds"));
@@ -32,11 +47,11 @@ for ($i=0;$i<count($data);$i++){
     $mitternacht= new DateTime("23:59:59");
     $c=date_format(date_sub($mitternacht,date_interval_create_from_date_string((string)($timeData[$day]["workTime"])." seconds")),'H:i:s');
     if ($c < $timeData[$day]["StartTime"]) {
-        //echo "$i:  " . $c . " ";
         $timeData[$day]["StartTime"]=$c;
         $endTime= date_format(new DateTime("23:59:59"),'H:i:s');
         $timeData[$day]["EndTime"]=$endTime;//wichtig für pausenzeit
     }
+
     /*Pausenzeiten*/
     $timeData[$day]["Pause"]= "00:00";
     if ($timeData[$day]["workTime"] >= 21600){
@@ -44,14 +59,14 @@ for ($i=0;$i<count($data);$i++){
             date_add(new DateTime($endTime),date_interval_create_from_date_string(
                 (3600)." seconds")
             ),'H:i:s');
-        $fStarttime=date_format(
+        $plusHourStarttime=date_format(
             date_sub(new DateTime($timeData[$day]["StartTime"]),date_interval_create_from_date_string(
                     (3600)." seconds")
             ),'H:i:s');
         if (($plusHourEndtime < $mitternacht) && ($plusHourEndtime > date_format(new DateTime("00:59:59"),'H:i:s'))) {
             $timeData[$day]["EndTime"]= $plusHourEndtime;
-        }elseif(($fStarttime > date_format(new DateTime("00:00:00"),'H:i:s'))){
-            $timeData[$day]["StartTime"]=$fStarttime;
+        }elseif(($plusHourStarttime > date_format(new DateTime("00:00:00"),'H:i:s'))){
+            $timeData[$day]["StartTime"]=$plusHourStarttime;
         }
         else{ // was wenn 0:20 begonnen dann pause und dann 23 stunden weitergemacht wie mache ich das dann mit den pausen? endtime minus eine stunde?
             echo "hgvfcgwdhkjdks";
@@ -59,7 +74,6 @@ for ($i=0;$i<count($data);$i++){
 
         $timeData[$day]["Pause"]= "01:00";
     }
-
 
     /*Test ob es den Tag überzieht und ändert in dem Fall die Startzeit auf die Mitternacht - worktime
     $mitternacht= new DateTime("23:59:59");
@@ -71,6 +85,7 @@ for ($i=0;$i<count($data);$i++){
     }*/
 }
 var_dump($timeData);
+// Array Tage nach Datum sortieren damit es in der richtigen Reihenfolge ist
 
 ?>
 
