@@ -1,13 +1,15 @@
 <?php
 
 require 'vendor/autoload.php';
-
+require '/Users/ll/Desktop/jsoninexcel/dompdf/lib/Cpdf.php';
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Writer\Pdf;
+use Dompdf\Dompdf;
 use function Sodium\add;
 
 $fileName = "jsonexport-08.json";
-
 if (!file_exists($fileName)) {
     echo "Datei nicht vorhanden.";
     exit;
@@ -18,7 +20,7 @@ if(!$dz) {
     exit;
 }
 
-$data= (file_get_contents("jsonexport-08.json"));
+$data= (file_get_contents($fileName));
 $data=(json_decode($data,true));
 
 $timeData=array();
@@ -35,7 +37,9 @@ for ($i=0;$i<count($data);$i++){
     $timeData[$day]["workTime"] = $timeData[$day]["workTime"] + $data[$i]["TimeSpentSeconds"];
     //Name auf Mehrfachnennung und Kommas prüfen und speichern
     $pos = strpos($timeData[$day]["Name"], $data[$i]["IssueKey"]);
-    if ($timeData[$day]["Name"] != ""){$timeData[$day]["Name"] = $timeData[$day]["Name"].", ";}
+    if ($timeData[$day]["Name"] != ""){
+        $timeData[$day]["Name"] = $timeData[$day]["Name"].", ";
+    }
     if ($pos === false) {
         $timeData[$day]["Name"] = $timeData[$day]["Name"].$data[$i]["IssueKey"];
     }
@@ -75,10 +79,9 @@ for ($i=0;$i<count($data);$i++){
     }
 }
 
-
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
-$startCell=8;
+$spreadsheet->getActiveSheet()->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE); //Querformat
 
 $sheet = $sheet->setCellValue('A1','Aktion:')->setCellValue('B1',null)
     ->mergeCells('B1:D1')->mergeCells('E1:G1')->mergeCells('H1:K1')
@@ -89,23 +92,25 @@ $sheet = $sheet->setCellValue('A1','Aktion:')->setCellValue('B1',null)
     ->setCellValue('B2','4501535029')
     ->setCellValue('E2','PLG-Ansprechpartner:')->setCellValue('H4',null)
     ->setCellValue('A3','Datum:')->setCellValue('B3',null)
-    ->setCellValue('E3','Auftragnehmer:')->setCellValue('H3','BI Business Intelligence GmbH');
+    ->setCellValue('E3','Auftragnehmer:')->setCellValue('H3','BI Business Intelligence GmbH')
 
-$sheet = $sheet
     ->setCellValue('A6','Datum')->mergeCells('A6:A7')
     ->setCellValue('B6','Name')->mergeCells('B6:B7')
     ->setCellValue('C6','Uhrzeit')->mergeCells('C6:D6')
     ->setCellValue('C7','von')->setCellValue('D7','bis')
     ->setCellValue('E6',"Pausen-\rzeit")->mergeCells('E6:E7')
-    ->setCellValue('F6','Kennzeichnung Verrechnungssatz')->mergeCells('F6:J6');
+    ->setCellValue('F6','Kennzeichnung Verrechnungssatz')->mergeCells('F6:J6')
+    ->setCellValue('K6','Ges. Arbeitszeit')->mergeCells('K6:K7');
 
-$sheet = $sheet->setCellValue('K6','Ges. Arbeitszeit')->mergeCells('K6:K7');
-
+$startCell=8;
+$starCellPDF = $startCell;
 $gesWorkTime=0;
 for ($startCell; $startCell<count($timeData)+8; $startCell++){ //count($timeData)+ Startvalue of $startCell, befüllt die Tabelle
     $day = key($timeData);
     $workTime=(string)$timeData[$day]["workTime"]/60/60;
     $gesWorkTime+=$workTime;
+    $timeData[$day]["StartTime"] = date_format(new DateTime($timeData[$day]["StartTime"]),'H:i');
+    $timeData[$day]["EndTime"] = date_format(new DateTime($timeData[$day]["EndTime"]),'H:i');
 
     $sheet->setCellValue('A'.$startCell, key($timeData))->setCellValue('C'.$startCell,$timeData[$day]["StartTime"])
     ->setCellValue('D'.$startCell,$timeData[$day]["EndTime"])->setCellValue('E'.$startCell,$timeData[$day]["Pause"])
@@ -127,7 +132,8 @@ for ($startCell; $startCell<count($timeData)+8; $startCell++){ //count($timeData
 }
 
 $sheet=$sheet->setCellValue('D'.$startCell,'Gesamt')->mergeCells('D'.$startCell.':E'.$startCell)
-    ->setCellValue('K'.$startCell,$gesWorkTime)->setCellValue('A'.($startCell+2),'Name/ausführende Firma/Datum/Unterschrift')
+    ->setCellValue('F18',"0:00")->setCellValue('G18','0:00')->setCellValue('H18','0:00')->setCellValue('I18','0:00')
+    ->setCellValue('J18',"0:00")->setCellValue('K'.$startCell,$gesWorkTime)->setCellValue('A'.($startCell+2),'Name/ausführende Firma/Datum/Unterschrift')
     ->mergeCells('A'.($startCell+2).':B'.($startCell+2))->setCellValue('A'.($startCell+5),'Name/Abteilungskürzel/Datum/Unterschrift Bearbeiter')
     ->mergeCells('A'.($startCell+5).':C'.($startCell+5))->setCellValue('G'.($startCell+5),'Name/Abteilungskürzel/Datum/Unterschrift Leiter C')
     ->mergeCells('G'.($startCell+5).':K'.($startCell+5))->setCellValue('A'.($startCell+6)," ");
@@ -153,17 +159,31 @@ $sheet->getStyle('K'.$startCell)->getBorders()->getInside()->setBorderStyle('thi
 //Säulenbreite
 $sheet->getColumnDimension('A')->setWidth(9.75);
 $sheet->getColumnDimension('B')->setWidth(31.5);
-$sheet->getColumnDimension('K')->setWidth(14.20);
 $sheet->getColumnDimension('E')->setWidth(7.5);
+$sheet->getColumnDimension('K')->setWidth(14.20);
 
 //Schriftart und Größe ändern
 /*
 $sheet->getStyle('A1'.':K'.($startCell+6))->getFont()->setName('times new roman');
 $sheet->getStyle('A1'.':K'.($startCell+6))->getFont()->setSize(9);
 */
-
+$month=date_format(new DateTime($data[0]["Started"]),'M');
 $writer = new Xlsx($spreadsheet);
-$writer->save('inexcel2.xlsx');
+$writer->save($month.'. Arbeitszeit.xlsx');
+
+//Formatierung für PDF
+for ($starCellPDF; $starCellPDF<count($timeData)+8; $starCellPDF++){
+    $value = (str_replace(array("\r\n","\n\r", "\r", "\n"),'',$sheet->getCell('B'.$starCellPDF)));
+    $sheet = $sheet->setCellValue('B'.$starCellPDF,$value);
+    next($timeData);
+}
+$sheet->getColumnDimension('A')->setWidth(15);
+$sheet->getColumnDimension('C')->setWidth(0);
+$sheet->getColumnDimension('D')->setWidth(0);
+$spreadsheet->getActiveSheet()->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+
+$pdf = new \PhpOffice\PhpSpreadsheet\Writer\Pdf\DOMPDF($spreadsheet);
+$pdf->save($month.'. Arbeitszeit.pdf');
 
 ?>
 
