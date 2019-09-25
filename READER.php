@@ -1,7 +1,6 @@
 <?php
 
 require 'vendor/autoload.php';
-require '/Users/ll/Desktop/jsoninexcel/dom/lib/Cpdf.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -81,7 +80,7 @@ for ($i=0;$i<count($data);$i++){
 
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
-$spreadsheet->getActiveSheet()->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE); //Querformat
+$sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE); //Querformat
 
 $sheet = $sheet->setCellValue('A1','Aktion:')->setCellValue('B1',null)
     ->mergeCells('B1:D1')->mergeCells('E1:G1')->mergeCells('H1:K1')
@@ -90,7 +89,7 @@ $sheet = $sheet->setCellValue('A1','Aktion:')->setCellValue('B1',null)
     ->setCellValue('E1','Tätigkeit:')->setCellValue('H1','Softwareentwicklung')
     ->setCellValue('A2','Bestell-Nr.:')->mergeCells('B2:D2')
     ->setCellValue('B2','4501535029')
-    ->setCellValue('E2','PLG-Ansprechpartner:')->setCellValue('H4',null)
+    ->setCellValue('E2','PLG-Ansprechpartner:')->setCellValue('A4',' ')
     ->setCellValue('A3','Datum:')->setCellValue('B3',null)
     ->setCellValue('E3','Auftragnehmer:')->setCellValue('H3','BI Business Intelligence GmbH')
 
@@ -103,7 +102,7 @@ $sheet = $sheet->setCellValue('A1','Aktion:')->setCellValue('B1',null)
     ->setCellValue('K6','Ges. Arbeitszeit')->mergeCells('K6:K7');
 
 $startCell=8;
-$starCellPDF = $startCell;
+$startCellPDF = $startCell;
 $gesWorkTime=0;
 for ($startCell; $startCell<count($timeData)+8; $startCell++){ //count($timeData)+ Startvalue of $startCell, befüllt die Tabelle
     $day = key($timeData);
@@ -133,7 +132,8 @@ for ($startCell; $startCell<count($timeData)+8; $startCell++){ //count($timeData
 
 $sheet=$sheet->setCellValue('D'.$startCell,'Gesamt')->mergeCells('D'.$startCell.':E'.$startCell)
     ->setCellValue('F18',"0:00")->setCellValue('G18','0:00')->setCellValue('H18','0:00')->setCellValue('I18','0:00')
-    ->setCellValue('J18',"0:00")->setCellValue('K'.$startCell,$gesWorkTime)->setCellValue('A'.($startCell+2),'Name/ausführende Firma/Datum/Unterschrift')
+    ->setCellValue('J18',"0:00")->setCellValue('K'.$startCell,$gesWorkTime)->setCellValue('A' .($startCell+1), '    ')
+    ->setCellValue('A' .($startCell+3), ' ')->setCellValue('A' .($startCell+4), ' ')->setCellValue('A'.($startCell+2),'Name/ausführende Firma/Datum/Unterschrift')
     ->mergeCells('A'.($startCell+2).':B'.($startCell+2))->setCellValue('A'.($startCell+5),'Name/Abteilungskürzel/Datum/Unterschrift Bearbeiter')
     ->mergeCells('A'.($startCell+5).':C'.($startCell+5))->setCellValue('G'.($startCell+5),'Name/Abteilungskürzel/Datum/Unterschrift Leiter C')
     ->mergeCells('G'.($startCell+5).':K'.($startCell+5))->setCellValue('A'.($startCell+6)," ");
@@ -162,25 +162,19 @@ $sheet->getColumnDimension('B')->setWidth(31.5);
 $sheet->getColumnDimension('E')->setWidth(7.5);
 $sheet->getColumnDimension('K')->setWidth(14.20);
 
-//Schriftart und Größe ändern
-/*
-$sheet->getStyle('A1'.':K'.($startCell+6))->getFont()->setName('times new roman');
-$sheet->getStyle('A1'.':K'.($startCell+6))->getFont()->setSize(9);
-*/
 $month=date_format(new DateTime($data[0]["Started"]),'M');
 $writer = new Xlsx($spreadsheet);
 $writer->save($month.'. Arbeitszeit.xlsx');
 
 //Formatierung für PDF
-for ($starCellPDF; $starCellPDF<count($timeData)+8; $starCellPDF++){
-    $value = (str_replace(array("\r\n","\n\r", "\r", "\n"),'',$sheet->getCell('B'.$starCellPDF)));
-    $sheet = $sheet->setCellValue('B'.$starCellPDF,$value);
+for ($startCellPDF; $startCellPDF<count($timeData)+8; $startCellPDF++){
+    $value = (str_replace(array("\r\n","\n\r", "\r", "\n"),'',$sheet->getCell('B'.$startCellPDF)));
+    $sheet = $sheet->setCellValue('B'.$startCellPDF,$value);
     next($timeData);
 }
 $sheet->getColumnDimension('A')->setWidth(15);
 $sheet->getColumnDimension('C')->setWidth(0);
 $sheet->getColumnDimension('D')->setWidth(0);
-$spreadsheet->getActiveSheet()->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
 
 $pdf = new \PhpOffice\PhpSpreadsheet\Writer\Pdf\DOMPDF($spreadsheet);
 $pdf->save($month.'. Arbeitszeit.pdf');
