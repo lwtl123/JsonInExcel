@@ -1,6 +1,6 @@
 <?php
 
-namespace JsonInExcel;
+namespace JsonInExcel\Output;
 class OutputPdf
 {
     public function getPdfSheet($spreadsheet,$fileName){

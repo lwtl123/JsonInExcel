@@ -1,5 +1,5 @@
 <?php
-namespace JsonInExcel;
+namespace JsonInExcel\Format;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -89,10 +89,7 @@ class Format
         //Säulenbreite
         $this->setColumnWidths($sheet);
 
-       // $this->sheet = $sheet;
-       // $this->spreadsheet = $spreadsheet;
         return $spreadsheet;
-
     }
 
     protected function setColumnWidths(Worksheet $sheet) {

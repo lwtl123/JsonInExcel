@@ -1,5 +1,5 @@
 <?php
-namespace JsonInExcel;
+namespace JsonInExcel\Output;
 
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 

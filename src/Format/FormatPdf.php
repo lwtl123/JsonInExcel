@@ -1,6 +1,6 @@
 <?php
 
-namespace JsonInExcel;
+namespace JsonInExcel\Format;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;

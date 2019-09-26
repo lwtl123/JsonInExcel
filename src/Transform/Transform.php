@@ -1,9 +1,7 @@
 <?php
-namespace JsonInExcel;
+namespace JsonInExcel\Transform;
 class Transform
 {
-    //public $timeData = array();
-
     public function transformData($data){
         $timeData = array();
         if (isset($data)) {

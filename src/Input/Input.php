@@ -1,5 +1,5 @@
 <?php
-namespace JsonInExcel;
+namespace JsonInExcel\Input;
 
     class Input {
 
