@@ -1,2 +1,4 @@
 *.pdf
 *.xls*
+vendor/
+.idea/
